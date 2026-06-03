@@ -4,7 +4,7 @@ const fs = require('fs');
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // Simple JSON file as database
 const DB_FILE = path.join(__dirname, 'jobs.json');
@@ -67,7 +67,7 @@ app.delete('/api/jobs/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-const PORT = 3456;
+const PORT = process.env.PORT || 3456;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`JobTracker draait op http://localhost:${PORT}`);
   console.log(`Op je telefoon: http://<jouw-laptop-ip>:${PORT}`);
