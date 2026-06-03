@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobTracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --surface: #ffffff;
+      --border: #e0e0e0;
+      --accent: #e69500;
+      --accent-dark: #c07d00;
+      --text: #1a1a1a;
+      --muted: #888;
+      --danger: #d93025;
+      --green: #1e8e3e;
+      --soon: #e67700;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: var(--shadow);
+    }
+    header h1 { font-size: 20px; font-weight: 700; color: var(--accent-dark); letter-spacing: 1px; }
+    header .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .stats { font-size: 13px; color: var(--muted); display: flex; gap: 20px; }
+    .stats strong { color: var(--text); }
+
+    main { max-width: 860px; margin: 0 auto; padding: 28px 16px; }
+
+    .add-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--accent);
+      border-radius: 4px;
+      padding: 22px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+    }
+    .add-form h2 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+    input[type="text"], textarea, .date-input {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 12px; font-family: 'Inter', sans-serif;
+      font-size: 14px; outline: none; transition: border-color 0.2s; border-radius: 3px;
+    }
+    input[type="text"]:focus, textarea:focus, .date-input:focus { border-color: var(--accent); background: white; }
+    textarea { resize: vertical; min-height: 72px; }
+    .form-row { display: flex; gap: 12px; align-items: flex-end; }
+    .form-row .field { flex: 1; margin-bottom: 0; }
+
+    button { cursor: pointer; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; border: none; padding: 10px 20px; transition: all 0.15s; border-radius: 3px; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent-dark); }
+    .btn-danger { background: var(--danger); color: white; }
+
+    .filters { display: flex; gap: 8px; margin-bottom: 16px; }
+    .filter-btn { background: var(--surface); color: var(--muted); border: 1px solid var(--border); padding: 7px 16px; font-size: 13px; font-weight: 500; border-radius: 20px; }
+    .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+    .jobs-list { display: flex; flex-direction: column; gap: 10px; }
+    .job-card {
+      background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--border);
+      border-radius: 4px; padding: 16px; box-shadow: var(--shadow);
+      transition: border-color 0.2s, opacity 0.3s;
+    }
+    .job-card.overdue { border-left-color: var(--danger); }
+    .job-card.soon { border-left-color: var(--soon); }
+    .job-card.ok { border-left-color: var(--green); }
+    .job-card.done { opacity: 0.45; }
+
+    .card-top { display: flex; align-items: flex-start; gap: 12px; }
+    .job-check {
+      width: 20px; height: 20px; border: 2px solid var(--border); background: white;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 2px; border-radius: 3px; transition: all 0.15s;
+    }
+    .job-check:hover { border-color: var(--accent); }
+    .job-check.checked { background: var(--green); border-color: var(--green); }
+    .job-check svg { display: none; }
+    .job-check.checked svg { display: block; }
+
+    .job-info { flex: 1; }
+    .job-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .job-desc { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+    .job-card.done .job-title { text-decoration: line-through; color: var(--muted); }
+
+    .job-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .job-date { font-size: 12px; color: var(--muted); }
+    .badge { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; }
+    .badge.overdue { background: #fde8e7; color: var(--danger); }
+    .badge.soon { background: #fff3e0; color: var(--soon); }
+    .badge.ok { background: #e6f4ea; color: var(--green); }
+    .badge.done { background: var(--bg); color: var(--muted); }
+
+    .job-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .btn-icon { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 5px 10px; font-size: 14px; border-radius: 3px; }
+    .btn-icon:hover { color: var(--accent-dark); border-color: var(--accent); }
+    .btn-icon.del:hover { color: var(--danger); border-color: var(--danger); }
+
+    .job-note { margin-top: 10px; padding: 8px 12px; background: #fffbf0; border-left: 3px solid var(--accent); font-size: 12px; color: #666; font-style: italic; border-radius: 0 3px 3px 0; }
+
+    /* MODAL */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
+    .overlay.show { display: flex; }
+    .modal { background: white; border-radius: 6px; border-top: 3px solid var(--accent); padding: 28px; width: 100%; max-width: 480px; margin: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+    .modal h3 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-dark); margin-bottom: 16px; }
+    .modal .job-title-ref { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .modal .job-desc-ref { font-size: 13px; color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .modal-actions button { flex: 1; min-width: 120px; }
+
+    /* TOAST NOTIFICATIONS */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 10px; max-width: 320px; }
+    .toast {
+      background: white; border: 1px solid var(--border); border-left: 4px solid var(--danger);
+      border-radius: 4px; padding: 14px 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      display: flex; gap: 12px; align-items: flex-start; cursor: pointer;
+      animation: slideIn 0.3s ease;
+    }
+    .toast.soon { border-left-color: var(--soon); }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .toast-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .toast-body { flex: 1; }
+    .toast-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+    .toast-sub { font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .toast-close { color: var(--muted); font-size: 16px; flex-shrink: 0; line-height: 1; }
+    .toast-close:hover { color: var(--text); }
+
+    /* DATEPICKER */
+    .datepicker-wrap { position: relative; }
+    .date-input { cursor: pointer; background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E") no-repeat right 10px center; padding-right: 36px; }
+    .cal-popup {
+      display: none; position: absolute; background: white; border: 1px solid var(--border);
+      border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); z-index: 500; width: 280px; padding: 12px;
+    }
+    .cal-popup.show { display: block; }
+    .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .cal-header span { font-weight: 600; font-size: 14px; }
+    .cal-nav { background: none; border: 1px solid var(--border); color: var(--text); padding: 4px 10px; font-size: 14px; border-radius: 3px; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .cal-nav:hover { background: var(--bg); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .cal-day-name { text-align: center; font-size: 11px; font-weight: 600; color: var(--muted); padding: 4px 0; text-transform: uppercase; }
+    .cal-day {
+      text-align: center; padding: 6px 2px; font-size: 13px; cursor: pointer; border-radius: 3px;
+      transition: background 0.1s;
+    }
+    .cal-day:hover { background: #fff3e0; }
+    .cal-day.today { font-weight: 700; color: var(--accent-dark); }
+    .cal-day.selected { background: var(--accent); color: white; font-weight: 600; }
+    .cal-day.other { color: #ccc; }
+    .cal-day.empty { cursor: default; }
+
+    .empty { text-align: center; padding: 48px; color: var(--muted); font-size: 14px; }
+
+    @media (max-width: 600px) {
+      .form-row { flex-direction: column; }
+      .card-top { flex-wrap: wrap; }
+      .toast-container { left: 16px; right: 16px; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>JOBTRACKER</h1>
+    <div class="sub">Werkvoorbereiding & bestellingen</div>
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+
+<main>
+  <div class="add-form">
+    <h2>Nieuwe job toevoegen</h2>
+    <div class="field">
+      <label>Titel</label>
+      <input type="text" id="inputTitle" placeholder="Bijv: Lagers pomp unit 3">
+    </div>
+    <div class="field">
+      <label>Omschrijving</label>
+      <textarea id="inputDesc" placeholder="Bijv: Besteld bij Fabrikant X, ordernummer 12345, levertijd 2 weken"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Reminder datum</label>
+        <div class="datepicker-wrap">
+          <div class="date-input" id="inputDateDisplay" onclick="toggleCal('addCal')" style="user-select:none">Kies een datum</div>
+          <input type="hidden" id="inputDate">
+          <div class="cal-popup" id="addCal"></div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="addJob()" style="height:42px;white-space:nowrap">Toevoegen</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('open')" data-filter="open">Open</button>
+    <button class="filter-btn" onclick="setFilter('all')" data-filter="all">Alles</button>
+    <button class="filter-btn" onclick="setFilter('done')" data-filter="done">Afgerond</button>
+  </div>
+
+  <div class="jobs-list" id="jobsList"></div>
+</main>
+
+<!-- UPDATE MODAL -->
+<div class="overlay" id="updateOverlay">
+  <div class="modal">
+    <h3>Status bijwerken</h3>
+    <div class="job-title-ref" id="modalTitle"></div>
+    <div class="job-desc-ref" id="modalDesc"></div>
+    <div class="field">
+      <label>Wat is de status nu?</label>
+      <textarea id="modalNote" placeholder="Bijv: Nog niet geleverd, nieuwe beloofde datum is 15 juni" style="min-height:80px"></textarea>
+    </div>
+    <div class="field">
+      <label>Nieuwe reminder datum</label>
+      <div class="datepicker-wrap">
+        <div class="date-input" id="modalDateDisplay" onclick="toggleCal('modalCal')" style="user-select:none">Kies een datum</div>
+        <input type="hidden" id="modalDate">
+        <div class="cal-popup" id="modalCal"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveUpdate()">Opslaan</button>
+      <button class="btn-secondary" onclick="markDoneFromModal()">Afvinken als klaar</button>
+      <button class="btn-secondary" onclick="closeModal()">Annuleren</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  let jobs = [];
+  let currentFilter = 'open';
+  let activeJobId = null;
+  let shownToasts = new Set();
+
+  // CALENDAR
+  const calState = {};
+
+  function initCal(calId, displayId, hiddenId, initialDate) {
+    const d = initialDate ? new Date(initialDate + 'T00:00:00') : new Date();
+    calState[calId] = { year: d.getFullYear(), month: d.getMonth(), selectedDate: initialDate || null, displayId, hiddenId };
+    renderCal(calId);
+  }
+
+  function toggleCal(calId) {
+    const el = document.getElementById(calId);
+    const isOpen = el.classList.contains('show');
+    document.querySelectorAll('.cal-popup').forEach(c => c.classList.remove('show'));
+    if (!isOpen) { renderCal(calId); el.classList.add('show'); }
+  }
+
+  function renderCal(calId) {
+    const s = calState[calId];
+    if (!s) return;
+    const el = document.getElementById(calId);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const firstDay = new Date(s.year, s.month, 1);
+    const lastDay = new Date(s.year, s.month + 1, 0);
+    const startDow = (firstDay.getDay() + 6) % 7; // Monday start
+    const monthNames = ['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+    const dayNames = ['Ma','Di','Wo','Do','Vr','Za','Zo'];
+
+    let html = `<div class="cal-header">
+      <button class="cal-nav" onclick="calNav('${calId}',-1)">&#8249;</button>
+      <span>${monthNames[s.month]} ${s.year}</span>
+      <button class="cal-nav" onclick="calNav('${calId}',1)">&#8250;</button>
+    </div><div class="cal-grid">`;
+
+    dayNames.forEach(d => html += `<div class="cal-day-name">${d}</div>`);
+
+    for (let i = 0; i < startDow; i++) html += `<div class="cal-day empty"></div>`;
+
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const thisDate = new Date(s.year, s.month, d);
+      const dateStr = `${s.year}-${String(s.month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isToday = thisDate.getTime() === today.getTime();
+      const isSel = dateStr === s.selectedDate;
+      html += `<div class="cal-day${isToday ? ' today' : ''}${isSel ? ' selected' : ''}" onclick="selectDate('${calId}','${dateStr}')">${d}</div>`;
+    }
+
+    html += '</div>';
+    el.innerHTML = html;
+  }
+
+  function calNav(calId, dir) {
+    const s = calState[calId];
+    s.month += dir;
+    if (s.month < 0) { s.month = 11; s.year--; }
+    if (s.month > 11) { s.month = 0; s.year++; }
+    renderCal(calId);
+  }
+
+  function selectDate(calId, dateStr) {
+    const s = calState[calId];
+    s.selectedDate = dateStr;
+    document.getElementById(s.hiddenId).value = dateStr;
+    const d = new Date(dateStr + 'T00:00:00');
+    document.getElementById(s.displayId).textContent = d.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById(calId).classList.remove('show');
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.datepicker-wrap')) {
+      document.querySelectorAll('.cal-popup').forEach(c => c.classList.remove('show'));
+    }
+  });
+
+  // Init add form calendar with today
+  const todayStr = new Date().toISOString().split('T')[0];
+  initCal('addCal', 'inputDateDisplay', 'inputDate', todayStr);
+  selectDate('addCal', todayStr);
+
+  // JOBS
+  function getStatus(job) {
+    if (job.done) return 'done';
+    const now = new Date(); now.setHours(0,0,0,0);
+    const rem = new Date(job.reminderDate + 'T00:00:00');
+    const diff = Math.floor((rem - now) / 86400000);
+    if (diff < 0) return 'overdue';
+    if (diff <= 2) return 'soon';
+    return 'ok';
+  }
+
+  function statusLabel(s) {
+    return { overdue: 'Verlopen', soon: 'Binnenkort', ok: 'Gepland', done: 'Klaar' }[s];
+  }
+
+  function formatDate(d) {
+    return new Date(d + 'T00:00:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+
+  function esc(t) {
+    if (!t) return '';
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  async function loadJobs() {
+    const res = await fetch('/api/jobs');
+    jobs = await res.json();
+    render();
+    updateStats();
+    showToasts();
+  }
+
+  function render() {
+    const list = document.getElementById('jobsList');
+    let filtered = jobs;
+    if (currentFilter === 'open') filtered = jobs.filter(j => !j.done);
+    if (currentFilter === 'done') filtered = jobs.filter(j => j.done);
+    filtered.sort((a, b) => {
+      if (a.done && !b.done) return 1;
+      if (!a.done && b.done) return -1;
+      return new Date(a.reminderDate) - new Date(b.reminderDate);
+    });
+    if (!filtered.length) { list.innerHTML = '<div class="empty">Geen jobs gevonden</div>'; return; }
+    list.innerHTML = filtered.map(job => {
+      const s = getStatus(job);
+      const noteHtml = job.lastNote ? `<div class="job-note">📝 ${esc(job.lastNote)}</div>` : '';
+      return `<div class="job-card ${s}" id="card-${job.id}">
+        <div class="card-top">
+          <div class="job-check ${job.done ? 'checked' : ''}" onclick="toggleDone('${job.id}')">
+            <svg width="11" height="9" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1" stroke="white" stroke-width="2.2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="job-info">
+            <div class="job-title">${esc(job.title)}</div>
+            ${job.description ? `<div class="job-desc">${esc(job.description)}</div>` : ''}
+            <div class="job-meta">
+              <span class="job-date">${formatDate(job.reminderDate)}</span>
+              <span class="badge ${s}">${statusLabel(s)}</span>
+            </div>
+            ${noteHtml}
+          </div>
+          <div class="job-actions">
+            <button class="btn-icon" onclick="openUpdate('${job.id}')" title="Status bijwerken">↻</button>
+            <button class="btn-icon del" onclick="deleteJob('${job.id}')" title="Verwijderen">✕</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function addJob() {
+    const title = document.getElementById('inputTitle').value.trim();
+    const desc = document.getElementById('inputDesc').value.trim();
+    const date = document.getElementById('inputDate').value;
+    if (!title) { alert('Vul een titel in.'); return; }
+    if (!date) { alert('Kies een datum.'); return; }
+    await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, description: desc, reminderDate: date }) });
+    document.getElementById('inputTitle').value = '';
+    document.getElementById('inputDesc').value = '';
+    initCal('addCal', 'inputDateDisplay', 'inputDate', todayStr);
+    selectDate('addCal', todayStr);
+    loadJobs();
+  }
+
+  async function toggleDone(id) {
+    const job = jobs.find(j => j.id === id);
+    await fetch(`/api/jobs/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ done: !job.done }) });
+    loadJobs();
+  }
+
+  async function deleteJob(id) {
+    if (!confirm('Job verwijderen?')) return;
+    await fetch(`/api/jobs/${id}`, { method: 'DELETE' });
+    loadJobs();
+  }
+
+  function openUpdate(id) {
+    const job = jobs.find(j => j.id === id);
+    activeJobId = id;
+    document.getElementById('modalTitle').textContent = job.title;
+    document.getElementById('modalDesc').textContent = job.description || '';
+    document.getElementById('modalNote').value = '';
+    initCal('modalCal', 'modalDateDisplay', 'modalDate', job.reminderDate);
+    selectDate('modalCal', job.reminderDate);
+    document.getElementById('updateOverlay').classList.add('show');
+    setTimeout(() => document.getElementById('modalNote').focus(), 100);
+  }
+
+  function closeModal() {
+    document.getElementById('updateOverlay').classList.remove('show');
+    activeJobId = null;
+  }
+
+  async function saveUpdate() {
+    const note = document.getElementById('modalNote').value.trim();
+    const date = document.getElementById('modalDate').value;
+    if (!date) { alert('Kies een datum.'); return; }
+    const body = { reminderDate: date };
+    if (note) body.lastNote = note;
+    await fetch(`/api/jobs/${activeJobId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    closeModal();
+    loadJobs();
+  }
+
+  async function markDoneFromModal() {
+    await fetch(`/api/jobs/${activeJobId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ done: true }) });
+    closeModal();
+    loadJobs();
+  }
+
+  document.getElementById('updateOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('updateOverlay')) closeModal();
+  });
+
+  function showToasts() {
+    const container = document.getElementById('toastContainer');
+    const overdue = jobs.filter(j => !j.done && getStatus(j) === 'overdue' && !shownToasts.has(j.id));
+    const soon = jobs.filter(j => !j.done && getStatus(j) === 'soon' && !shownToasts.has(j.id));
+    [...overdue, ...soon].forEach(job => {
+      shownToasts.add(job.id);
+      const s = getStatus(job);
+      const toast = document.createElement('div');
+      toast.className = `toast ${s}`;
+      toast.innerHTML = `
+        <div class="toast-icon">${s === 'overdue' ? '⚠️' : '⏰'}</div>
+        <div class="toast-body">
+          <div class="toast-title">${esc(job.title)}</div>
+          <div class="toast-sub">${s === 'overdue' ? 'Verlopen op' : 'Vervalt op'} ${formatDate(job.reminderDate)}${job.description ? '<br>' + esc(job.description.substring(0,60)) + (job.description.length > 60 ? '...' : '') : ''}</div>
+        </div>
+        <div class="toast-close" onclick="this.closest('.toast').remove()">✕</div>`;
+      toast.addEventListener('click', e => { if (!e.target.classList.contains('toast-close')) { openUpdate(job.id); } });
+      container.appendChild(toast);
+    });
+  }
+
+  function updateStats() {
+    const open = jobs.filter(j => !j.done).length;
+    const overdue = jobs.filter(j => !j.done && getStatus(j) === 'overdue').length;
+    document.getElementById('stats').innerHTML = `<div>Open: <strong>${open}</strong></div><div>Verlopen: <strong style="color:${overdue > 0 ? 'var(--danger)' : 'inherit'}">${overdue}</strong></div>`;
+  }
+
+  function setFilter(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+    render();
+  }
+
+  loadJobs();
+</script>
+</body>
+</html>
